@@ -1,9 +1,6 @@
 package ub.cse.algo;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.LinkedList;
-import java.util.Stack;
+import java.util.*;
 
 public class Solution {
     
@@ -15,70 +12,98 @@ public class Solution {
         _endNode = endNode;
         graph = g;
     }
-    
+
+    /**
+     * Find the smallest weighted path between _startNode and _endNode
+     * The first number of graph's adjacency list is the weight of it's node
+     */
     public ArrayList<Integer> outputPath(){
-        /*
-         * Find the smallest weighted path between _startNode and _endNode
-         * The first number of graph's adjacency list is the weight of it's node
-         */
 
+        Stack<Integer> pathStack = new Stack<>();
         ArrayList<Integer> path = new ArrayList<>();
-
         int size = this.graph.size();
 
+        // Keep track of the status of each node
+        int[] prev = new int[size];           // the previous node of the given node
+        int[] weight = new int[size];         // the weight of the given node
         int[] discovered = new int[size];
-        discovered[this._startNode] = 1;
+
+        /* The container of nodes ready to be explored later
+         * PriorityQueue gives the ability to sort the element when it is inserted
+         * Add method only takes O(log(n)) time
+         */
+        PriorityQueue<Integer> unexplored = new PriorityQueue<>(Comparator.comparingInt(node -> weight[node]));
+
+        // Initialize the status of each node
+        for (int node : this.graph.keySet()) {
+            prev[node] = -1;
+            weight[node] = this.graph.get(node).get(0);
+        }
+
+        // Begin with the starting node
         int currentNode = this._startNode;
+        weight[currentNode] = 0;
+        discovered[currentNode] = 1;
 
-        Stack<Integer> stack = new Stack<>();
-        stack.push(currentNode);
-        boolean found = false;
+        // All adjacent nodes of the starting node is push into the queue
+        ArrayList<Integer> adjacentNodes = this.graph.get(currentNode);
+        for (int i = 1; i < adjacentNodes.size(); i++) {
+            int adjNode = adjacentNodes.get(i);
+            prev[adjNode] = currentNode;
+            weight[adjNode] += weight[currentNode];
+            unexplored.add(adjNode);
+            discovered[adjNode] = 1;
+        }
 
-        while (!stack.empty()) {
+        // Dijkstra's Algorithm modified to this problem
+        while (!unexplored.isEmpty()) {
 
-            ArrayList<Integer> adjacentNodes = this.graph.get(currentNode);
+            // Pick and remove the node with the smallest weight(or distance away) from the starting node
+            /* (PriorityQueue.poll method gives us the head of the queue, which is the node with the smallest weight,
+             * and runs in O(log(n)) time) */
+            currentNode = unexplored.poll();
+            adjacentNodes = this.graph.get(currentNode);
 
-            int min = 51;
-            int index = -1;
-
-            // Find the endNode or pick the smallest weighted node
             for (int i = 1; i < adjacentNodes.size(); i++) {
                 int adjNode = adjacentNodes.get(i);
 
-                if (discovered[adjNode] != 1) {
-                    if (adjNode == this._endNode) {
-                        index = i;
-                        found = true;
-                        break;
-                    }
+                /* If undiscovered, update the status of nodes
+                 */
+                if (discovered[adjNode] == 0) {
+                    prev[adjNode] = currentNode;
+                    weight[adjNode] += weight[currentNode];
+                    unexplored.add(adjNode);
+                    discovered[adjNode] = 1;
+                }
 
-                    int addWeight = this.graph.get(adjNode).get(0);
-                    if (addWeight < min) {
-                        min = addWeight;
-                        index = i;
+                /* If discovered before, compare the accumulative weights given by two different parent nodes
+                 * That is, the current parent and the previous parent
+                 * Swap when the weight with the current parent node is less than the weight with the previous one
+                 */
+                else {
+                    int before = weight[adjNode];
+                    int after = weight[adjNode] + weight[currentNode];
+                    if (after < before) {
+                        prev[adjNode] = currentNode;
+                        weight[adjNode] = after;
                     }
                 }
             }
-
-            if (index == -1) {
-                currentNode = stack.pop();
-                continue;
-            }
-
-            int adjNode =  adjacentNodes.get(index);
-            currentNode = adjNode;
-            stack.push(currentNode);
-            discovered[adjNode] = 1;
-
-            if (found) {
-                break;
-            }
         }
 
-        if (!stack.empty()) {
-            while (!stack.empty()) {
-                path.add(stack.pop());
+        /* The path we get is reverse from the expected result
+         * Use the stack to reverse the path and compute the output
+         */
+        if (prev[this._endNode] != -1) {
+            int node = this._endNode;
+            pathStack.push(node);
+            while (prev[node] != -1) {
+                pathStack.push(prev[node]);
+                node = prev[node];
             }
+        }
+        while (!pathStack.isEmpty()) {
+            path.add(pathStack.pop());
         }
 
         return path;
