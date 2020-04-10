@@ -82,7 +82,7 @@ public class Solution {
                  */
                 else {
                     int before = weight[adjNode];
-                    int after = weight[adjNode] + weight[currentNode];
+                    int after = weight[currentNode] + this.graph.get(adjNode).get(0);
                     if (after < before) {
                         prev[adjNode] = currentNode;
                         weight[adjNode] = after;
